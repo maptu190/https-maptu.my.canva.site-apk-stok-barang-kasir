@@ -1,0 +1,62 @@
+https://script.google.com/macros/s/AKfycbyTqjoqlD8XwN0vTwezHkhmAWMg1ppnIofvtA7SX3N9hayyjhmicYaCgg49Jrux2SooxA/exec
+
+let allData = [];
+let kasirCart = [];
+let currentRecordCount = 0;
+let currentUser = '';
+let selectedPayment = '';
+
+// Mengambil data terupdate dari Google Sheet saat aplikasi dibuka
+async function initApp() {
+    try {
+        const response = await fetch(SCRIPT_URL);
+        const data = await response.json();
+        allData = data;
+        currentRecordCount = data.length;
+        renderAll();
+    } catch (err) {
+        console.error("Gagal mengambil data dari Google Sheet: ", err);
+    }
+    lucide.createIcons();
+}
+initApp();
+
+// Menghubungkan fungsi simpan data langsung ke Google Sheet via POST request
+async function saveData(payload) {
+    if (currentRecordCount >= 999) {
+        const warning = document.getElementById('limit-warning');
+        warning.classList.remove('hidden');
+        setTimeout(() => warning.classList.add('hidden'), 3000);
+        return false;
+    }
+    
+    showLoading(true);
+    try {
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            redirect: 'follow', // Penting agar pengalihan link Google Apps Script berjalan lancar
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+        });
+        
+        const result = await response.json();
+        showLoading(false);
+        
+        if (result.isOk) {
+            // Tambahkan data ke local state agar web langsung ter-update tanpa reload
+            payload.id = result.id;
+            allData.push(payload);
+            currentRecordCount++;
+            renderAll();
+            return true;
+        } else {
+            alert("Gagal menyimpan ke Google Sheet: " + result.message);
+            return false;
+        }
+    } catch (error) {
+        showLoading(false);
+        console.error("Error:", error);
+        alert("Terjadi kesalahan jaringan.");
+        return false;
+    }
+}

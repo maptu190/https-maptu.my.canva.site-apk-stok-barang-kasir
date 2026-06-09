@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="id"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manajemen Stok &amp; Kasir</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+        body { font-family: 'DM Sans', sans-serif; }
+        .nav-item { transition: all 0.2s; }
+        .nav-item:hover, .nav-item.active { background: rgba(255,255,255,0.15); }
+        .view-enter { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .welcome-page { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .welcome-card { animation: fadeInScale 0.6s ease-out; }
+        @keyframes fadeInScale { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .carousel-container { position: relative; overflow: hidden; }
+        .carousel-image { position: absolute; inset: 0; opacity: 0; transition: opacity 1s; }
+        .carousel-image.active { opacity: 1; }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+        }
+        .print-only { display: none; }
+        .nota-preview { border: 2px dashed #d1d5db; }
+        .hamburger-menu { display: none; }
+        @media (max-width: 768px) {
+            .hamburger-menu { display: block !important; }
+            #sidebar { position: fixed; left: 0; top: 0; z-index: 40; transform: translateX(-100%); transition: transform 0.3s; width: 64; }
+            #sidebar.open { transform: translateX(0); }
+            .main-content-wrapper { width: 100%; }
+            main { overflow-y: auto; }
+            #main-app { flex-direction: column; }
+            .welcome-card { width: 90%; max-width: 400px; }
+            input, select, button { min-height: 44px; font-size: 16px; }
+            .grid-form { display: grid !important; grid-template-columns: 1fr !important; }
+            table { font-size: 12px; }
+            table th, table td { padding: 6px 8px !important; }
+            .text-xl { font-size: 18px; }
+            .text-lg { font-size: 16px; }
+            .p-6 { padding: 16px; }
+        }
+    </style>
+  <script src="/_sdk/resizing_sdk.js" type="text/javascript"></script>
+ <script src="/_sdk/telemetry_sdk.js"></script></head>
+ <body data-template-id="__page-root" class="min-h-screen flex" style="background: rgb(241, 245, 249);">
+  <!-- Welcome Page -->
+  <div id="welcome-page" class="welcome-page w-full min-h-screen flex items-center justify-center no-print">
+   <div class="welcome-card bg-white rounded-2xl shadow-2xl p-8 w-96">
+    <div class="text-center mb-6">
+     <h1 data-template-id="welcome-title" class="canva-text text-3xl font-bold mb-2" style="color: rgb(17, 24, 39); font-weight: 700; font-style: normal; font-size: 28px;">Selamat Datang</h1>
+     <p data-template-id="welcome-subtitle" class="canva-text text-gray-600" style="color: rgb(107, 114, 128); font-weight: 400; font-style: normal; font-size: 14px;">Sistem Manajemen Stok &amp; Kasir Terpadu</p>
+    </div>
+    <form onsubmit="startApp(event)" class="space-y-4">
+     <div>
+      <label for="username" data-template-id="welcome-label" class="canva-text block text-sm font-semibold mb-2" style="color: rgb(17, 24, 39); font-weight: 600; font-style: normal; font-size: 14px;">Nama Pengguna</label> <input id="username" type="text" placeholder="Masukkan nama Anda" required="" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-purple-500">
+     </div><button type="submit" data-template-id="welcome-button" class="canva-button w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 rounded-lg hover:shadow-lg transition" style="font-weight: 600; font-style: normal; font-size: 16px;">Masuk Sekarang</button>
+    </form>
+   </div>
+  </div><!-- Main App -->
+  <div id="main-app" class="hidden w-full flex">
+   <!-- Mobile hamburger button --> <button id="hamburger-btn" class="hamburger-menu fixed top-4 left-4 z-50 p-2 bg-purple-600 text-white rounded no-print" onclick="toggleSidebar()"> <i data-lucide="menu" style="width:24px;height:24px"></i> </button> <!-- Sidebar overlay for mobile -->
+   <div id="sidebar-overlay" class="hidden fixed inset-0 bg-black/50 z-30 no-print" onclick="toggleSidebar()"></div><!-- Sidebar -->
+   <aside id="sidebar" data-template-id="sidebar" class="canva-sidebar w-64 min-h-screen flex-shrink-0 flex flex-col no-print" style="background: rgb(15, 41, 66);">
+    <div class="p-4 border-b border-white/10">
+     <h1 data-template-id="app-title" class="canva-text text-lg font-bold" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 28px;">Stok &amp; Kasir</h1>
+     <p id="user-greeting" class="text-xs text-white/70 mt-1"></p>
+    </div>
+    <nav class="flex-1 p-3 space-y-1">
+     <button onclick="showView('dashboard')" class="nav-item active w-full text-left px-3 py-2 rounded text-white/90 text-sm flex items-center gap-2" data-view="dashboard"><i data-lucide="layout-dashboard" style="width:16px;height:16px"></i> Dashboard</button> <button onclick="showView('master')" class="nav-item w-full text-left px-3 py-2 rounded text-white/90 text-sm flex items-center gap-2" data-view="master"><i data-lucide="package" style="width:16px;height:16px"></i> Stok Master</button> <button onclick="showView('penerimaan')" class="nav-item w-full text-left px-3 py-2 rounded text-white/90 text-sm flex items-center gap-2" data-view="penerimaan"><i data-lucide="download" style="width:16px;height:16px"></i> Penerimaan</button> <button onclick="showView('pengeluaran')" class="nav-item w-full text-left px-3 py-2 rounded text-white/90 text-sm flex items-center gap-2" data-view="pengeluaran"><i data-lucide="upload" style="width:16px;height:16px"></i> Pengeluaran</button> <button onclick="showView('penyimpanan')" class="nav-item w-full text-left px-3 py-2 rounded text-white/90 text-sm flex items-center gap-2" data-view="penyimpanan"><i data-lucide="archive" style="width:16px;height:16px"></i> Penyimpanan</button> <button onclick="showView('kasir')" class="nav-item w-full text-left px-3 py-2 rounded text-white/90 text-sm flex items-center gap-2" data-view="kasir"><i data-lucide="shopping-cart" style="width:16px;height:16px"></i> Kasir</button> <button onclick="showView('riwayat')" class="nav-item w-full text-left px-3 py-2 rounded text-white/90 text-sm flex items-center gap-2" data-view="riwayat"><i data-lucide="history" style="width:16px;height:16px"></i> Riwayat Transaksi</button>
+    </nav>
+    <div class="p-3 space-y-2 border-t border-white/10">
+     <button onclick="toggleThemeMenu()" class="w-full text-left px-3 py-2 rounded text-white/90 text-sm flex items-center gap-2 hover:bg-white/10"><i data-lucide="palette" style="width:16px;height:16px"></i> Tema</button>
+     <div id="theme-menu" class="hidden ml-2 space-y-1">
+      <button onclick="setTheme('blue')" class="w-full text-left px-3 py-2 rounded text-white/80 text-xs hover:bg-white/10 flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-blue-600"></span> Biru</button> <button onclick="setTheme('green')" class="w-full text-left px-3 py-2 rounded text-white/80 text-xs hover:bg-white/10 flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-green-600"></span> Hijau</button> <button onclick="setTheme('purple')" class="w-full text-left px-3 py-2 rounded text-white/80 text-xs hover:bg-white/10 flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-purple-600"></span> Ungu</button> <button onclick="setTheme('red')" class="w-full text-left px-3 py-2 rounded text-white/80 text-xs hover:bg-white/10 flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-red-600"></span> Merah</button>
+     </div><button onclick="logout()" class="w-full text-left px-3 py-2 rounded text-white/90 text-sm flex items-center gap-2 hover:bg-red-500/30"><i data-lucide="log-out" style="width:16px;height:16px"></i> Logout</button>
+    </div>
+   </aside>
+   <main class="flex-1 overflow-auto">
+    <!-- Nota Preview (shown at top after transaction) -->
+    <div id="nota-preview-container" class="hidden p-4 no-print">
+     <div class="nota-preview bg-white rounded-lg shadow-lg p-6 max-w-md mx-auto relative">
+      <button onclick="closeNotaPreview()" class="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-xl">×</button>
+      <div class="text-center mb-4">
+       <img data-template-id="nota-header-img" class="canva-image w-full h-32 object-cover rounded mb-3" loading="lazy" src="https://images.pexels.com/photos/6863183/pexels-photo-6863183.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=800" alt="Close-up of tax forms, receipts, and coins symbolizing financial accounting.">
+       <h2 class="text-lg font-bold">NOTA PENJUALAN</h2>
+       <p id="preview-nota-nomor" class="text-sm text-gray-600"></p>
+       <p id="preview-nota-tanggal" class="text-sm text-gray-600"></p>
+      </div>
+      <p id="preview-nota-pelanggan" class="text-sm mb-2"></p>
+      <p id="preview-nota-metode" class="text-sm mb-3 font-semibold text-blue-600"></p>
+      <table class="w-full text-sm border-t border-b">
+       <thead>
+        <tr>
+         <th class="py-1 text-left">Item</th>
+         <th class="py-1 text-center">Qty</th>
+         <th class="py-1 text-right">Subtotal</th>
+        </tr>
+       </thead>
+       <tbody id="preview-nota-items"></tbody>
+      </table>
+      <div class="flex justify-between font-bold mt-2 text-lg"><span>TOTAL:</span><span id="preview-nota-total"></span>
+      </div>
+      <p class="text-center text-xs mt-4 text-gray-500">Terima kasih atas kunjungan Anda!</p><button onclick="window.print()" class="mt-3 w-full py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">Cetak Nota</button>
+     </div>
+    </div><!-- Dashboard -->
+    <div id="view-dashboard" class="p-6 view-enter">
+     <h2 data-template-id="dashboard-title" class="canva-text text-xl font-bold mb-6" style="color: rgb(30, 41, 59); font-weight: 700; font-style: normal; font-size: 21px;">Dashboard</h2>
+     <div class="carousel-container mb-6 h-48 rounded-lg shadow-lg">
+      <img data-template-id="carousel-1" class="carousel-image active canva-image w-full h-full object-cover rounded-lg" loading="lazy" src="https://images.pexels.com/photos/4483610/pexels-photo-4483610.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=800" alt="Wide angle view of a warehouse with stocked shelves and boxes."> <img data-template-id="carousel-2" class="carousel-image canva-image w-full h-full object-cover rounded-lg" loading="lazy" src="canva://MAG1P8q6OrU/1" alt="A group of people discussing ideas around laptops in a bright office space."> <img data-template-id="carousel-3" class="carousel-image canva-image w-full h-full object-cover rounded-lg" loading="lazy" src="https://images.pexels.com/photos/3182812/pexels-photo-3182812.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=800" alt="A group of diverse young professionals happily collaborating around a laptop."> <img data-template-id="carousel-4" class="carousel-image canva-image w-full h-full object-cover rounded-lg" loading="lazy" src="https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=800" alt="Overhead view of a diverse team in a business meeting using laptops.">
+     </div>
+     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div data-template-id="card-master" class="canva-card p-4 rounded-lg shadow" style="background: rgb(255, 255, 255);">
+       <p class="text-sm text-gray-500">Total Barang</p>
+       <p id="stat-master" class="text-2xl font-bold text-gray-800">0</p>
+      </div>
+      <div data-template-id="card-masuk" class="canva-card p-4 rounded-lg shadow" style="background: rgb(255, 255, 255);">
+       <p class="text-sm text-gray-500">Penerimaan</p>
+       <p id="stat-masuk" class="text-2xl font-bold text-gray-800">0</p>
+      </div>
+      <div data-template-id="card-keluar" class="canva-card p-4 rounded-lg shadow" style="background: rgb(255, 255, 255);">
+       <p class="text-sm text-gray-500">Pengeluaran</p>
+       <p id="stat-keluar" class="text-2xl font-bold text-gray-800">0</p>
+      </div>
+      <div data-template-id="card-transaksi" class="canva-card p-4 rounded-lg shadow" style="background: rgb(255, 255, 255);">
+       <p class="text-sm text-gray-500">Transaksi</p>
+       <p id="stat-transaksi" class="text-2xl font-bold text-gray-800">0</p>
+      </div>
+     </div>
+     <div class="bg-white p-4 rounded-lg shadow">
+      <h3 data-template-id="dashboard-form-title" class="canva-text font-semibold mb-4" style="color: rgb(30, 41, 59); font-weight: 600; font-style: normal; font-size: 16px;">Tambah Stok Barang</h3>
+      <form onsubmit="addDashboardStok(event)" class="grid-form gap-3">
+       <input name="kode_barang" placeholder="Kode Barang" required="" class="border rounded px-3 py-2 text-sm"> <input name="nama_barang" placeholder="Nama Barang" required="" class="border rounded px-3 py-2 text-sm"> <input name="satuan" placeholder="Satuan" required="" class="border rounded px-3 py-2 text-sm"> <input name="harga_barang" type="number" placeholder="Harga" step="0.01" required="" class="border rounded px-3 py-2 text-sm">
+       <div class="col-span-full"><button type="submit" class="w-full px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">Simpan Stok</button>
+       </div>
+      </form>
+     </div>
+    </div><!-- Stok Master -->
+    <div id="view-master" class="p-6 hidden">
+     <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-bold text-gray-800">Stok Master</h2><button onclick="toggleForm('form-master')" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">+ Tambah Barang</button>
+     </div>
+     <div id="form-master" class="hidden bg-white p-4 rounded-lg shadow mb-4">
+      <form onsubmit="addMaster(event)" class="grid-form gap-3">
+       <input name="kode_barang" placeholder="Kode Barang" required="" class="border rounded px-3 py-2 text-sm"> <input name="nama_barang" placeholder="Nama Barang" required="" class="border rounded px-3 py-2 text-sm"> <input name="satuan" placeholder="Satuan" required="" class="border rounded px-3 py-2 text-sm"> <input name="harga_barang" type="number" placeholder="Harga" required="" class="border rounded px-3 py-2 text-sm">
+       <div class="col-span-full"><button type="submit" class="w-full px-4 py-2 bg-green-600 text-white rounded text-sm">Simpan</button>
+       </div>
+      </form>
+     </div>
+     <div class="overflow-x-auto bg-white rounded-lg shadow">
+      <table class="w-full text-sm">
+       <thead class="bg-gray-50">
+        <tr>
+         <th class="px-3 py-2 text-left">No</th>
+         <th class="px-3 py-2 text-left">Kode</th>
+         <th class="px-3 py-2 text-left">Nama</th>
+         <th class="px-3 py-2 text-left">Satuan</th>
+         <th class="px-3 py-2 text-right">Harga</th>
+         <th class="px-3 py-2">Aksi</th>
+        </tr>
+       </thead>
+       <tbody id="table-master"></tbody>
+      </table>
+     </div>
+    </div><!-- Penerimaan -->
+    <div id="view-penerimaan" class="p-6 hidden">
+     <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-bold text-gray-800">Penerimaan Barang</h2><button onclick="toggleForm('form-penerimaan')" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">+ Tambah</button>
+     </div>
+     <div id="form-penerimaan" class="hidden bg-white p-4 rounded-lg shadow mb-4">
+      <form onsubmit="addPenerimaan(event)" class="grid-form gap-3">
+       <input name="tanggal" type="date" required="" class="border rounded px-3 py-2 text-sm"> <input name="kode_barang" placeholder="Kode Barang" required="" class="border rounded px-3 py-2 text-sm"> <input name="nama_barang" placeholder="Nama Barang" required="" class="border rounded px-3 py-2 text-sm"> <input name="jumlah_barang" type="number" placeholder="Jumlah" required="" class="border rounded px-3 py-2 text-sm"> <input name="satuan" placeholder="Satuan" required="" class="border rounded px-3 py-2 text-sm"> <input name="harga_barang" type="number" placeholder="Harga" required="" class="border rounded px-3 py-2 text-sm"> <select name="kondisi_barang" required="" class="border rounded px-3 py-2 text-sm"><option value="">Kondisi</option><option>Bagus</option><option>Rusak</option><option>Cacat</option><option>Kurang</option><option>Lebih</option></select> <select name="keterangan" required="" class="border rounded px-3 py-2 text-sm"><option value="">Keterangan</option><option>Sesuai</option><option>Tidak Sesuai</option></select>
+       <div class="col-span-full"><button type="submit" class="w-full px-4 py-2 bg-green-600 text-white rounded text-sm">Simpan</button>
+       </div>
+      </form>
+     </div>
+     <div class="overflow-x-auto bg-white rounded-lg shadow">
+      <table class="w-full text-sm">
+       <thead class="bg-gray-50">
+        <tr>
+         <th class="px-3 py-2">No</th>
+         <th class="px-3 py-2">Tanggal</th>
+         <th class="px-3 py-2">Kode</th>
+         <th class="px-3 py-2">Nama</th>
+         <th class="px-3 py-2">Jumlah</th>
+         <th class="px-3 py-2">Satuan</th>
+         <th class="px-3 py-2">Harga</th>
+         <th class="px-3 py-2">Kondisi</th>
+         <th class="px-3 py-2">Ket</th>
+         <th class="px-3 py-2">Aksi</th>
+        </tr>
+       </thead>
+       <tbody id="table-penerimaan"></tbody>
+      </table>
+     </div>
+    </div><!-- Pengeluaran -->
+    <div id="view-pengeluaran" class="p-6 hidden">
+     <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-bold text-gray-800">Pengeluaran Barang</h2><button onclick="toggleForm('form-pengeluaran')" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">+ Tambah</button>
+     </div>
+     <div id="form-pengeluaran" class="hidden bg-white p-4 rounded-lg shadow mb-4">
+      <form onsubmit="addPengeluaran(event)" class="grid-form gap-3">
+       <input name="tanggal" type="date" required="" class="border rounded px-3 py-2 text-sm"> <input name="kode_barang" placeholder="Kode Barang" required="" class="border rounded px-3 py-2 text-sm"> <input name="nama_barang" placeholder="Nama Barang" required="" class="border rounded px-3 py-2 text-sm"> <input name="jumlah_barang" type="number" placeholder="Jumlah" required="" class="border rounded px-3 py-2 text-sm"> <input name="satuan" placeholder="Satuan" required="" class="border rounded px-3 py-2 text-sm"> <input name="harga_barang" type="number" placeholder="Harga" required="" class="border rounded px-3 py-2 text-sm"> <input name="keterangan" placeholder="Keterangan" class="border rounded px-3 py-2 text-sm">
+       <div class="col-span-full"><button type="submit" class="w-full px-4 py-2 bg-green-600 text-white rounded text-sm">Simpan</button>
+       </div>
+      </form>
+     </div>
+     <div class="overflow-x-auto bg-white rounded-lg shadow">
+      <table class="w-full text-sm">
+       <thead class="bg-gray-50">
+        <tr>
+         <th class="px-3 py-2">No</th>
+         <th class="px-3 py-2">Tanggal</th>
+         <th class="px-3 py-2">Kode</th>
+         <th class="px-3 py-2">Nama</th>
+         <th class="px-3 py-2">Jumlah</th>
+         <th class="px-3 py-2">Satuan</th>
+         <th class="px-3 py-2">Harga</th>
+         <th class="px-3 py-2">Keterangan</th>
+         <th class="px-3 py-2">Aksi</th>
+        </tr>
+       </thead>
+       <tbody id="table-pengeluaran"></tbody>
+      </table>
+     </div>
+    </div><!-- Penyimpanan -->
+    <div id="view-penyimpanan" class="p-6 hidden">
+     <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-bold text-gray-800">Penyimpanan Barang</h2><button onclick="toggleForm('form-penyimpanan')" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">+ Tambah</button>
+     </div>
+     <div id="form-penyimpanan" class="hidden bg-white p-4 rounded-lg shadow mb-4">
+      <form onsubmit="addPenyimpanan(event)" class="grid-form gap-3">
+       <input name="kode_rak" placeholder="Kode Rak" required="" class="border rounded px-3 py-2 text-sm"> <input name="kode_barang" placeholder="Kode Barang" required="" class="border rounded px-3 py-2 text-sm"> <input name="nama_barang" placeholder="Nama Barang" required="" class="border rounded px-3 py-2 text-sm"> <input name="jumlah_barang" type="number" placeholder="Jumlah" required="" class="border rounded px-3 py-2 text-sm"> <input name="satuan" placeholder="Satuan" required="" class="border rounded px-3 py-2 text-sm"> <input name="harga_barang" type="number" placeholder="Harga" required="" class="border rounded px-3 py-2 text-sm"> <input name="keterangan" placeholder="Kondisi Barang" class="border rounded px-3 py-2 text-sm">
+       <div class="col-span-full"><button type="submit" class="w-full px-4 py-2 bg-green-600 text-white rounded text-sm">Simpan</button>
+       </div>
+      </form>
+     </div>
+     <div class="overflow-x-auto bg-white rounded-lg shadow">
+      <table class="w-full text-sm">
+       <thead class="bg-gray-50">
+        <tr>
+         <th class="px-3 py-2">No</th>
+         <th class="px-3 py-2">Kode Rak</th>
+         <th class="px-3 py-2">Kode Barang</th>
+         <th class="px-3 py-2">Nama</th>
+         <th class="px-3 py-2">Jumlah</th>
+         <th class="px-3 py-2">Satuan</th>
+         <th class="px-3 py-2">Harga</th>
+         <th class="px-3 py-2">Kondisi</th>
+         <th class="px-3 py-2">Aksi</th>
+        </tr>
+       </thead>
+       <tbody id="table-penyimpanan"></tbody>
+      </table>
+     </div>
+    </div><!-- Kasir -->
+    <div id="view-kasir" class="p-6 hidden">
+     <h2 class="text-xl font-bold text-gray-800 mb-4">Kasir</h2>
+     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="bg-white p-4 rounded-lg shadow">
+       <h3 class="font-semibold mb-3">Tambah Item</h3>
+       <form onsubmit="addKasirItem(event)" class="space-y-2">
+        <input name="kode_barang" placeholder="Kode Barang" required="" class="w-full border rounded px-3 py-2 text-sm"> <input name="nama_barang" placeholder="Nama Barang" required="" class="w-full border rounded px-3 py-2 text-sm">
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+         <input name="jumlah" type="number" placeholder="Qty" required="" class="border rounded px-3 py-2 text-sm"> <input name="satuan" placeholder="Satuan" required="" class="border rounded px-3 py-2 text-sm"> <input name="harga" type="number" placeholder="Harga" required="" class="border rounded px-3 py-2 text-sm">
+        </div><button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded text-sm">Tambah</button>
+       </form>
+      </div>
+      <div class="bg-white p-4 rounded-lg shadow">
+       <h3 class="font-semibold mb-3">Nota</h3><input id="kasir-pelanggan" placeholder="Nama Pelanggan" class="w-full border rounded px-3 py-2 text-sm mb-2"> <label class="text-sm font-semibold block mb-2">Metode Pembayaran:</label>
+       <div class="grid grid-cols-3 gap-2 mb-4">
+        <button type="button" onclick="setPaymentMethod('Tunai')" data-template-id="btn-tunai" class="canva-button flex flex-col items-center gap-1 p-2 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-method="Tunai" style="background: rgb(255, 255, 255);"><i data-lucide="banknote" style="width:20px;height:20px;color:#10b981"></i><span class="text-xs font-semibold">Tunai</span></button> <button type="button" onclick="setPaymentMethod('Dana')" data-template-id="btn-dana" class="canva-button flex flex-col items-center gap-1 p-2 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-method="Dana" style="background: rgb(255, 255, 255);"><img data-template-id="img-dana" class="canva-image w-6 h-6 object-contain" loading="lazy" src="https://images.pexels.com/photos/8764611/pexels-photo-8764611.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=400" alt="Dana e-wallet digital payment Indonesia."><span class="text-xs font-semibold">Dana</span></button> <button type="button" onclick="setPaymentMethod('Gopay')" data-template-id="btn-gopay" class="canva-button flex flex-col items-center gap-1 p-2 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-method="Gopay" style="background: rgb(255, 255, 255);"><img data-template-id="img-gopay" class="canva-image w-6 h-6 object-contain" loading="lazy" src="https://images.pexels.com/photos/11180937/pexels-photo-11180937.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=400" alt="GoPay digital payment method."><span class="text-xs font-semibold">Gopay</span></button> <button type="button" onclick="setPaymentMethod('BRI')" data-template-id="btn-bri" class="canva-button flex flex-col items-center gap-1 p-2 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-method="BRI" style="background: rgb(255, 255, 255);"><img data-template-id="img-bri" class="canva-image w-6 h-6 object-contain" loading="lazy" src="https://images.pexels.com/photos/12735800/pexels-photo-12735800.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=400" alt="BRI Bank Indonesia."><span class="text-xs font-semibold">BRI</span></button> <button type="button" onclick="setPaymentMethod('BCA')" data-template-id="btn-bca" class="canva-button flex flex-col items-center gap-1 p-2 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-method="BCA" style="background: rgb(255, 255, 255);"><img data-template-id="img-bca" class="canva-image w-6 h-6 object-contain" loading="lazy" src="https://images.pexels.com/photos/29065595/pexels-photo-29065595.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=400" alt="BCA Bank transfer payment method."><span class="text-xs font-semibold">BCA</span></button> <button type="button" onclick="setPaymentMethod('QRIS')" data-template-id="btn-qris" class="canva-button flex flex-col items-center gap-1 p-2 border-2 border-gray-300 rounded-lg hover:border-blue-500 transition" data-method="QRIS" style="background: rgb(255, 255, 255);"><img data-template-id="img-qris" class="canva-image w-6 h-6 object-contain" loading="lazy" src="https://images.pexels.com/photos/12935051/pexels-photo-12935051.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=400" alt="QRIS QR code payment Indonesia."><span class="text-xs font-semibold">QRIS</span></button>
+       </div>
+       <div id="payment-error" class="hidden text-red-600 text-xs mb-2"></div>
+       <table class="w-full text-sm mb-3">
+        <thead class="bg-gray-50">
+         <tr>
+          <th class="px-2 py-1 text-left">Nama</th>
+          <th class="px-2 py-1">Qty</th>
+          <th class="px-2 py-1">Harga</th>
+          <th class="px-2 py-1">Subtotal</th>
+          <th class="px-2 py-1"></th>
+         </tr>
+        </thead>
+        <tbody id="kasir-items"></tbody>
+       </table>
+       <div class="flex justify-between font-bold text-lg border-t pt-2"><span>Total:</span><span id="kasir-total">Rp 0</span>
+       </div>
+       <div class="flex gap-2 mt-3">
+        <button onclick="simpanTransaksi()" class="flex-1 px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700">Simpan &amp; Cetak</button> <button onclick="resetKasir()" class="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded text-sm">Reset</button>
+       </div>
+      </div>
+     </div>
+    </div><!-- Print-only Nota -->
+    <div id="nota-print" class="print-only p-8 max-w-md mx-auto">
+     <div class="text-center mb-4">
+      <h2 class="text-lg font-bold">NOTA PENJUALAN</h2>
+      <p id="nota-nomor" class="text-sm"></p>
+      <p id="nota-tanggal" class="text-sm"></p>
+     </div>
+     <p id="nota-pelanggan" class="text-sm mb-2"></p>
+     <table class="w-full text-sm border-t border-b">
+      <thead>
+       <tr>
+        <th class="py-1 text-left">Item</th>
+        <th class="py-1">Qty</th>
+        <th class="py-1 text-right">Subtotal</th>
+       </tr>
+      </thead>
+      <tbody id="nota-items"></tbody>
+     </table>
+     <div class="flex justify-between font-bold mt-2 text-base"><span>TOTAL:</span><span id="nota-total"></span>
+     </div>
+     <p class="text-center text-xs mt-4">Terima kasih atas kunjungan Anda!</p>
+    </div><!-- Riwayat -->
+    <div id="view-riwayat" class="p-6 hidden">
+     <h2 class="text-xl font-bold text-gray-800 mb-4">Riwayat Transaksi</h2><input id="search-riwayat" oninput="renderRiwayat()" placeholder="Cari nota/pelanggan..." class="w-full md:w-64 border rounded px-3 py-2 text-sm mb-4">
+     <div class="overflow-x-auto bg-white rounded-lg shadow">
+      <table class="w-full text-sm">
+       <thead class="bg-gray-50">
+        <tr>
+         <th class="px-3 py-2">No Nota</th>
+         <th class="px-3 py-2">Tanggal</th>
+         <th class="px-3 py-2">Pelanggan</th>
+         <th class="px-3 py-2">Metode</th>
+         <th class="px-3 py-2">Total</th>
+         <th class="px-3 py-2">Aksi</th>
+        </tr>
+       </thead>
+       <tbody id="table-riwayat"></tbody>
+      </table>
+     </div>
+    </div><!-- Loading overlay -->
+    <div id="loading-overlay" class="hidden fixed inset-0 bg-black/20 flex items-center justify-center z-50">
+     <div class="bg-white px-6 py-3 rounded shadow text-sm">
+      Menyimpan...
+     </div>
+    </div><!-- Limit warning -->
+    <div id="limit-warning" class="hidden fixed top-4 right-4 bg-red-100 text-red-800 px-4 py-2 rounded shadow z-50 text-sm">
+     Batas 999 data tercapai!
+    </div>
+   </main>
+  </div>
+  <script src="/_sdk/editing_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <script>
+        let allData = [];
+        let kasirCart = [];
+        let currentRecordCount = 0;
+        let currentUser = '';
+        let selectedPayment = '';
+        const themeColors = {
+            blue: '#0f2942',
+            green: '#064e3b',
+            purple: '#3f0f5c',
+            red: '#7f1d1d'
+        };
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('hidden');
+        }
+
+        // Close sidebar when clicking on a nav item
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.nav-item').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (window.innerWidth <= 768) {
+                        toggleSidebar();
+                    }
+                });
+            });
+        });
+
+        // Carousel
+        let carouselIdx = 0;
+        function runCarousel() {
+            const imgs = document.querySelectorAll('.carousel-image');
+            if (!imgs.length) return;
+            imgs.forEach(i => i.classList.remove('active'));
+            carouselIdx = (carouselIdx + 1) % imgs.length;
+            imgs[carouselIdx].classList.add('active');
+        }
+        setInterval(runCarousel, 3000);
+
+        const dataHandler = {
+            onDataChanged(data) {
+                allData = data;
+                currentRecordCount = data.length;
+                renderAll();
+            }
+        };
+
+        async function initApp() {
+            const r = await window.dataSdk.init(dataHandler);
+            if (!r.isOk) { /* silent */ }
+            lucide.createIcons();
+        }
+        initApp();
+
+        function startApp(e) {
+            e.preventDefault();
+            currentUser = document.getElementById('username').value;
+            document.getElementById('welcome-page').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            document.getElementById('user-greeting').textContent = 'Halo, ' + currentUser;
+            lucide.createIcons();
+        }
+
+        function logout() {
+            currentUser = '';
+            kasirCart = [];
+            document.getElementById('welcome-page').classList.remove('hidden');
+            document.getElementById('main-app').classList.add('hidden');
+            document.getElementById('username').value = '';
+            showView('dashboard');
+        }
+
+        function toggleThemeMenu() {
+            document.getElementById('theme-menu').classList.toggle('hidden');
+        }
+
+        function setTheme(theme) {
+            const color = themeColors[theme];
+            const sidebar = document.getElementById('sidebar');
+            sidebar.style.setProperty('background-color', color, 'important');
+            document.getElementById('theme-menu').classList.add('hidden');
+        }
+
+        function showView(name) {
+            document.querySelectorAll('[id^="view-"]').forEach(v => v.classList.add('hidden'));
+            const el = document.getElementById('view-' + name);
+            if (el) { el.classList.remove('hidden'); el.classList.add('view-enter'); }
+            document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+            document.querySelector(`[data-view="${name}"]`)?.classList.add('active');
+            // Hide nota preview when switching views
+            document.getElementById('nota-preview-container').classList.add('hidden');
+        }
+
+        function toggleForm(id) { document.getElementById(id).classList.toggle('hidden'); }
+        function showLoading(show) { document.getElementById('loading-overlay').classList.toggle('hidden', !show); }
+        function formatRupiah(n) { return 'Rp ' + Number(n).toLocaleString('id-ID'); }
+        function filterByType(type) { return allData.filter(d => d.type === type); }
+
+        function renderAll() {
+            document.getElementById('stat-master').textContent = filterByType('master').length;
+            document.getElementById('stat-masuk').textContent = filterByType('penerimaan').length;
+            document.getElementById('stat-keluar').textContent = filterByType('pengeluaran').length;
+            document.getElementById('stat-transaksi').textContent = filterByType('transaksi').length;
+            renderTable('master');
+            renderTable('penerimaan');
+            renderTable('pengeluaran');
+            renderTable('penyimpanan');
+            renderRiwayat();
+        }
+
+        function renderTable(type) {
+            const tbody = document.getElementById('table-' + type);
+            const items = filterByType(type);
+            let html = '';
+            items.forEach((item, i) => {
+                if (type === 'master') {
+                    html += `<tr class="border-t"><td class="px-3 py-2">${i+1}</td><td class="px-3 py-2">${item.kode_barang||''}</td><td class="px-3 py-2">${item.nama_barang||''}</td><td class="px-3 py-2">${item.satuan||''}</td><td class="px-3 py-2 text-right">${formatRupiah(item.harga_barang||0)}</td><td class="px-3 py-2 text-center"><button onclick="deleteRecord('${item.__backendId}')" class="text-red-500 text-xs hover:underline">Hapus</button></td></tr>`;
+                } else if (type === 'penerimaan') {
+                    html += `<tr class="border-t"><td class="px-3 py-2">${i+1}</td><td class="px-3 py-2">${item.tanggal||''}</td><td class="px-3 py-2">${item.kode_barang||''}</td><td class="px-3 py-2">${item.nama_barang||''}</td><td class="px-3 py-2">${item.jumlah_barang||''}</td><td class="px-3 py-2">${item.satuan||''}</td><td class="px-3 py-2">${formatRupiah(item.harga_barang||0)}</td><td class="px-3 py-2">${item.kondisi_barang||''}</td><td class="px-3 py-2">${item.keterangan||''}</td><td class="px-3 py-2 text-center"><button onclick="deleteRecord('${item.__backendId}')" class="text-red-500 text-xs hover:underline">Hapus</button></td></tr>`;
+                } else if (type === 'pengeluaran') {
+                    html += `<tr class="border-t"><td class="px-3 py-2">${i+1}</td><td class="px-3 py-2">${item.tanggal||''}</td><td class="px-3 py-2">${item.kode_barang||''}</td><td class="px-3 py-2">${item.nama_barang||''}</td><td class="px-3 py-2">${item.jumlah_barang||''}</td><td class="px-3 py-2">${item.satuan||''}</td><td class="px-3 py-2">${formatRupiah(item.harga_barang||0)}</td><td class="px-3 py-2">${item.keterangan||''}</td><td class="px-3 py-2 text-center"><button onclick="deleteRecord('${item.__backendId}')" class="text-red-500 text-xs hover:underline">Hapus</button></td></tr>`;
+                } else if (type === 'penyimpanan') {
+                    html += `<tr class="border-t"><td class="px-3 py-2">${i+1}</td><td class="px-3 py-2">${item.kode_rak||''}</td><td class="px-3 py-2">${item.kode_barang||''}</td><td class="px-3 py-2">${item.nama_barang||''}</td><td class="px-3 py-2">${item.jumlah_barang||''}</td><td class="px-3 py-2">${item.satuan||''}</td><td class="px-3 py-2">${formatRupiah(item.harga_barang||0)}</td><td class="px-3 py-2">${item.keterangan||''}</td><td class="px-3 py-2 text-center"><button onclick="deleteRecord('${item.__backendId}')" class="text-red-500 text-xs hover:underline">Hapus</button></td></tr>`;
+                }
+            });
+            tbody.innerHTML = html || '<tr><td colspan="10" class="px-3 py-4 text-center text-gray-400">Belum ada data</td></tr>';
+        }
+
+        function renderRiwayat() {
+            const search = (document.getElementById('search-riwayat')?.value || '').toLowerCase();
+            const items = filterByType('transaksi').filter(d =>
+                !search || (d.nomor_nota||'').toLowerCase().includes(search) || (d.pelanggan||'').toLowerCase().includes(search)
+            );
+            const tbody = document.getElementById('table-riwayat');
+            let html = '';
+            items.forEach(item => {
+                html += `<tr class="border-t"><td class="px-3 py-2">${item.nomor_nota||''}</td><td class="px-3 py-2">${item.tanggal||''}</td><td class="px-3 py-2">${item.pelanggan||'-'}</td><td class="px-3 py-2">${item.metode_bayar||'-'}</td><td class="px-3 py-2">${formatRupiah(item.total_transaksi||0)}</td><td class="px-3 py-2 text-center"><button onclick="showNotaPreview('${item.__backendId}')" class="text-blue-600 text-xs hover:underline">Lihat</button> <button onclick="deleteRecord('${item.__backendId}')" class="text-red-500 text-xs hover:underline">Hapus</button></td></tr>`;
+            });
+            tbody.innerHTML = html || '<tr><td colspan="6" class="px-3 py-4 text-center text-gray-400">Belum ada transaksi</td></tr>';
+        }
+
+        async function createRecord(data) {
+            if (currentRecordCount >= 999) {
+                document.getElementById('limit-warning').classList.remove('hidden');
+                setTimeout(() => document.getElementById('limit-warning').classList.add('hidden'), 3000);
+                return;
+            }
+            showLoading(true);
+            const r = await window.dataSdk.create(data);
+            showLoading(false);
+            if (!r.isOk) showInlineError('Gagal menyimpan data');
+        }
+
+        async function deleteRecord(id) {
+            const record = allData.find(d => d.__backendId === id);
+            if (!record) return;
+            showLoading(true);
+            const r = await window.dataSdk.delete(record);
+            showLoading(false);
+            if (!r.isOk) showInlineError('Gagal menghapus data');
+        }
+
+        function showInlineError(msg) {
+            const el = document.getElementById('payment-error');
+            el.textContent = msg;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 3000);
+        }
+
+        async function addDashboardStok(e) {
+            e.preventDefault();
+            const f = new FormData(e.target);
+            await createRecord({ type: 'master', kode_barang: f.get('kode_barang'), nama_barang: f.get('nama_barang'), satuan: f.get('satuan'), harga_barang: Number(f.get('harga_barang')) });
+            e.target.reset();
+        }
+
+        async function addMaster(e) {
+            e.preventDefault();
+            const f = new FormData(e.target);
+            await createRecord({ type: 'master', kode_barang: f.get('kode_barang'), nama_barang: f.get('nama_barang'), satuan: f.get('satuan'), harga_barang: Number(f.get('harga_barang')) });
+            e.target.reset();
+        }
+
+        async function addPenerimaan(e) {
+            e.preventDefault();
+            const f = new FormData(e.target);
+            await createRecord({ type: 'penerimaan', tanggal: f.get('tanggal'), kode_barang: f.get('kode_barang'), nama_barang: f.get('nama_barang'), jumlah_barang: Number(f.get('jumlah_barang')), satuan: f.get('satuan'), harga_barang: Number(f.get('harga_barang')), kondisi_barang: f.get('kondisi_barang'), keterangan: f.get('keterangan') });
+            e.target.reset();
+        }
+
+        async function addPengeluaran(e) {
+            e.preventDefault();
+            const f = new FormData(e.target);
+            await createRecord({ type: 'pengeluaran', tanggal: f.get('tanggal'), kode_barang: f.get('kode_barang'), nama_barang: f.get('nama_barang'), jumlah_barang: Number(f.get('jumlah_barang')), satuan: f.get('satuan'), harga_barang: Number(f.get('harga_barang')), keterangan: f.get('keterangan') });
+            e.target.reset();
+        }
+
+        async function addPenyimpanan(e) {
+            e.preventDefault();
+            const f = new FormData(e.target);
+            await createRecord({ type: 'penyimpanan', kode_rak: f.get('kode_rak'), kode_barang: f.get('kode_barang'), nama_barang: f.get('nama_barang'), jumlah_barang: Number(f.get('jumlah_barang')), satuan: f.get('satuan'), harga_barang: Number(f.get('harga_barang')), keterangan: f.get('keterangan') });
+            e.target.reset();
+        }
+
+        function setPaymentMethod(method) {
+            selectedPayment = method;
+            document.querySelectorAll('[data-method]').forEach(btn => {
+                if (btn.dataset.method === method) {
+                    btn.classList.add('border-blue-500', 'bg-blue-50');
+                    btn.classList.remove('border-gray-300');
+                } else {
+                    btn.classList.remove('border-blue-500', 'bg-blue-50');
+                    btn.classList.add('border-gray-300');
+                }
+            });
+            document.getElementById('payment-error').classList.add('hidden');
+        }
+
+        function addKasirItem(e) {
+            e.preventDefault();
+            if (!selectedPayment) {
+                showInlineError('Pilih metode pembayaran terlebih dahulu');
+                return;
+            }
+            const f = new FormData(e.target);
+            kasirCart.push({ kode: f.get('kode_barang'), nama: f.get('nama_barang'), qty: Number(f.get('jumlah')), satuan: f.get('satuan'), harga: Number(f.get('harga')) });
+            renderKasir();
+            e.target.reset();
+        }
+
+        function renderKasir() {
+            const tbody = document.getElementById('kasir-items');
+            let total = 0;
+            tbody.innerHTML = kasirCart.map((item, i) => {
+                const sub = item.qty * item.harga;
+                total += sub;
+                return `<tr class="border-t"><td class="px-2 py-1">${item.nama}</td><td class="px-2 py-1 text-center">${item.qty}</td><td class="px-2 py-1 text-right">${formatRupiah(item.harga)}</td><td class="px-2 py-1 text-right">${formatRupiah(sub)}</td><td class="px-2 py-1 text-center"><button onclick="kasirCart.splice(${i},1);renderKasir()" class="text-red-500 text-xs">×</button></td></tr>`;
+            }).join('');
+            document.getElementById('kasir-total').textContent = formatRupiah(total);
+        }
+
+        async function simpanTransaksi() {
+            if (!kasirCart.length) return;
+            if (!selectedPayment) {
+                showInlineError('Pilih metode pembayaran terlebih dahulu');
+                return;
+            }
+            const pelanggan = document.getElementById('kasir-pelanggan').value || '-';
+            const total = kasirCart.reduce((s, i) => s + i.qty * i.harga, 0);
+            const nomor = 'INV-' + Date.now().toString(36).toUpperCase();
+            const tanggal = new Date().toLocaleDateString('id-ID');
+
+            await createRecord({ type: 'transaksi', nomor_nota: nomor, tanggal, pelanggan, metode_bayar: selectedPayment, total_transaksi: total, items_json: JSON.stringify(kasirCart) });
+
+            // Show nota preview at top
+            displayNotaPreview(nomor, tanggal, pelanggan, selectedPayment, kasirCart, total);
+
+            // Also set print nota
+            document.getElementById('nota-nomor').textContent = nomor;
+            document.getElementById('nota-tanggal').textContent = tanggal;
+            document.getElementById('nota-pelanggan').textContent = 'Pelanggan: ' + pelanggan;
+            document.getElementById('nota-items').innerHTML = kasirCart.map(i => `<tr><td class="py-1">${i.nama}</td><td class="py-1 text-center">${i.qty}</td><td class="py-1 text-right">${formatRupiah(i.qty*i.harga)}</td></tr>`).join('');
+            document.getElementById('nota-total').textContent = formatRupiah(total);
+
+            resetKasir();
+        }
+
+        function displayNotaPreview(nomor, tanggal, pelanggan, metode, items, total) {
+            document.getElementById('preview-nota-nomor').textContent = nomor;
+            document.getElementById('preview-nota-tanggal').textContent = tanggal;
+            document.getElementById('preview-nota-pelanggan').textContent = 'Pelanggan: ' + pelanggan;
+            document.getElementById('preview-nota-metode').textContent = 'Pembayaran: ' + metode;
+            document.getElementById('preview-nota-items').innerHTML = items.map(i => `<tr><td class="py-1">${i.nama}</td><td class="py-1 text-center">${i.qty}</td><td class="py-1 text-right">${formatRupiah(i.qty*i.harga)}</td></tr>`).join('');
+            document.getElementById('preview-nota-total').textContent = formatRupiah(total);
+            document.getElementById('nota-preview-container').classList.remove('hidden');
+            // Scroll to top
+            document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function showNotaPreview(id) {
+            const record = allData.find(d => d.__backendId === id);
+            if (!record) return;
+            const items = JSON.parse(record.items_json || '[]');
+            displayNotaPreview(record.nomor_nota, record.tanggal, record.pelanggan || '-', record.metode_bayar || '-', items, record.total_transaksi);
+            // Switch to kasir view to show it
+            showView('kasir');
+            document.getElementById('nota-preview-container').classList.remove('hidden');
+            document.querySelector('main').scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function closeNotaPreview() {
+            document.getElementById('nota-preview-container').classList.add('hidden');
+        }
+
+        function resetKasir() {
+            kasirCart = [];
+            selectedPayment = '';
+            renderKasir();
+            document.getElementById('kasir-pelanggan').value = '';
+            document.querySelectorAll('[data-method]').forEach(btn => {
+                btn.classList.remove('border-blue-500', 'bg-blue-50');
+                btn.classList.add('border-gray-300');
+            });
+        }
+    </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a08c92191af08e41',t:'MTc4MDk3MDcyMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+</body></html>
